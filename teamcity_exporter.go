@@ -3,12 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	tc "github.com/guidewire/teamcity-go-bindings"
-	"github.com/orcaman/concurrent-map"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
-	"github.com/prometheus/common/version"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -16,6 +10,13 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/Sirupsen/logrus"
+	tc "github.com/guidewire/teamcity-go-bindings"
+	"github.com/orcaman/concurrent-map"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/version"
 )
 
 const (
@@ -126,7 +127,7 @@ func collectInstancesStat(i Instance) {
 	client := tc.New(i.URL, i.Username, i.Password)
 	wg := &sync.WaitGroup{}
 
-	ticker := time.NewTicker(time.Duration(i.ScrapeInterval) * time.Second).C
+	ticker := newTicker(time.Duration(i.ScrapeInterval) * time.Second)
 	for _ = range ticker {
 		logrus.WithFields(logrus.Fields{
 			"instance":    i.Name,

@@ -3,10 +3,12 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-	"github.com/Sirupsen/logrus"
-	"github.com/fatih/structs"
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/Sirupsen/logrus"
+	"github.com/fatih/structs"
 )
 
 func splitMetricsTitle(s string) map[string]string {
@@ -52,4 +54,16 @@ func getHash(s ...string) string {
 	}
 	hash := sha256.Sum256([]byte(str))
 	return string(hash[:len(hash)])
+}
+
+func newTicker(d time.Duration) <-chan time.Time {
+	ticker := time.NewTicker(d).C
+	ch := make(chan time.Time)
+	go func() {
+		ch <- time.Now()
+		for _ = range ticker {
+			ch <- time.Now()
+		}
+	}()
+	return ch
 }
