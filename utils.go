@@ -54,7 +54,6 @@ func newTicker(d time.Duration) *ticker {
 		newTicker.C <- time.Now()
 		for _ = range stdTicker.C {
 			newTicker.C <- time.Now()
-			fmt.Println("add to ticker")
 		}
 	}()
 	return newTicker

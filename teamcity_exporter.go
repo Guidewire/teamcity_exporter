@@ -194,19 +194,19 @@ func collectBuildsStat(c *tc.Client, inst string, filter BuildFilter, wg *sync.W
 		metric := strings.SplitN(stat.Property[i].Name, ":", 2)
 		title := toSnakeCase(metric[0])
 
-		labels := map[string]string{
-			"exporter_instance":   inst,
-			"exporter_filter":     filter.Name,
-			"build_configuration": stat.UsedFilter.BuildType,
+		labels := []Label{
+			{"exporter_instance", inst},
+			{"exporter_filter", filter.Name},
+			{"build_configuration", stat.UsedFilter.BuildType},
 		}
 		if len(metric) > 1 {
-			labels["other"] = metric[1]
+			labels = append(labels, Label{"other", metric[1]})
 		}
 
 		labelsTitles, labelsValues := []string{}, []string{}
-		for k, v := range labels {
-			labelsTitles = append(labelsTitles, k)
-			labelsValues = append(labelsValues, v)
+		for i := range labels {
+			labelsTitles = append(labelsTitles, labels[i].Name)
+			labelsValues = append(labelsValues, labels[i].Value)
 		}
 
 		desc := prometheus.NewDesc(title, title, labelsTitles, nil)
