@@ -7,21 +7,21 @@ import (
 )
 
 type Instance struct {
-	Name           string
-	URL            string        `json:"url"`
-	Username       string        `json:"username"`
-	Password       string        `json:"password"`
-	ScrapeInterval int64         `json:"scrape_interval"`
-	BuildsFilters  []BuildFilter `json:"builds_filters"`
+	Name           string        `yaml:"name"`
+	URL            string        `yaml:"url"`
+	Username       string        `yaml:"username"`
+	Password       string        `yaml:"password"`
+	ScrapeInterval int64         `yaml:"scrape_interval"`
+	BuildsFilters  []BuildFilter `yaml:"builds_filters"`
 }
 
 type BuildFilter struct {
-	Name   string
+	Name   string `yaml:"name"`
 	Filter tc.BuildLocator
 }
 
 type Configuration struct {
-	Instances []Instance `json:"instances"`
+	Instances []Instance `yaml:"instances"`
 }
 
 type Collector struct {
