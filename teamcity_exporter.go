@@ -3,20 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
-	_ "net/http/pprof"
-	"os"
-	"runtime"
-	"strconv"
-	"sync"
-	"time"
-
 	"github.com/Sirupsen/logrus"
 	tc "github.com/guidewire/teamcity-go-bindings"
 	"github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -128,7 +128,7 @@ func collectInstancesStat(i Instance) {
 	wg := &sync.WaitGroup{}
 
 	ticker := newTicker(time.Duration(i.ScrapeInterval) * time.Second)
-	for _ = range ticker {
+	for _ = range ticker.C {
 		logrus.WithFields(logrus.Fields{
 			"instance":    i.Name,
 			"timestamp":   time.Now().Unix(),
@@ -155,12 +155,13 @@ func collectInstancesStat(i Instance) {
 					}).Error(err)
 				}
 				for z := range buildCfgs.BuildType {
-					i.BuildsFilters[v].Filter.BuildType = buildCfgs.BuildType[z].ID
-					logrus.WithFields(logsFormatter(buildCfgs.BuildType[z])).WithFields(logrus.Fields{
+					f := i.BuildsFilters[v]
+					f.Filter.BuildType = buildCfgs.BuildType[z].ID
+					logrus.WithFields(logsFormatter(f)).WithFields(logrus.Fields{
 						"instance": i.Name,
 					}).Debug("Found build configuration")
 					wg.Add(1)
-					go collectBuildsStat(client, i.Name, i.BuildsFilters[v], wg)
+					go collectBuildsStat(client, i.Name, f, wg)
 				}
 			}
 		}
@@ -190,18 +191,29 @@ func collectBuildsStat(c *tc.Client, inst string, filter BuildFilter, wg *sync.W
 
 	for i := range stat.Property {
 		value, _ := strconv.ParseFloat(stat.Property[i].Value, 64)
-		metricWithLabels := splitMetricsTitle(stat.Property[i].Name)
-		for m, l := range metricWithLabels {
-			desc := prometheus.NewDesc(convertCamelCaseToSnakeCase(m),
-				convertCamelCaseToSnakeCase(m),
-				[]string{"instance", "filter", "buildConfiguration", "name"},
-				nil)
-			metricsStorage.Set(getHash(convertCamelCaseToSnakeCase(m)+inst+filter.Name+stat.UsedFilter.BuildType+l),
-				prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, value, inst, filter.Name, stat.UsedFilter.BuildType, l))
-			logrus.WithFields(logrus.Fields{
-				"name":  convertCamelCaseToSnakeCase(m),
-				"value": value,
-			}).Debug("Saving metric to temporary storage")
+		metric := strings.SplitN(stat.Property[i].Name, ":", 2)
+		title := toSnakeCase(metric[0])
+
+		labels := map[string]string{
+			"exporter_instance":   inst,
+			"exporter_filter":     filter.Name,
+			"build_configuration": stat.UsedFilter.BuildType,
 		}
+		if len(metric) > 1 {
+			labels["other"] = metric[1]
+		}
+
+		labelsTitles, labelsValues := []string{}, []string{}
+		for k, v := range labels {
+			labelsTitles = append(labelsTitles, k)
+			labelsValues = append(labelsValues, v)
+		}
+
+		desc := prometheus.NewDesc(title, title, labelsTitles, nil)
+		metricsStorage.Set(getHash(title, labelsValues...), prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, value, labelsValues...))
+		logrus.WithFields(logrus.Fields{
+			"name":  title,
+			"value": value,
+		}).Debug("Saving metric to temporary storage")
 	}
 }

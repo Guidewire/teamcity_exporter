@@ -11,16 +11,7 @@ import (
 	"github.com/fatih/structs"
 )
 
-func splitMetricsTitle(s string) map[string]string {
-	res := strings.SplitAfterN(s, ":", 2)
-	res[0] = strings.Replace(res[0], ":", "", -1)
-	if len(res) > 1 {
-		return map[string]string{res[0]: res[1]}
-	}
-	return map[string]string{res[0]: ""}
-}
-
-func convertCamelCaseToSnakeCase(s string) string {
+func toSnakeCase(s string) string {
 	a := []string{}
 	camel := regexp.MustCompile("(^[^A-Z]*|[A-Z]*)([A-Z][^A-Z]+|$)")
 
@@ -47,23 +38,24 @@ func logsFormatter(f interface{}) logrus.Fields {
 	return r
 }
 
-func getHash(s ...string) string {
-	str := ""
+func getHash(t string, s ...string) string {
 	for i := range s {
-		str = fmt.Sprintf(str, s[i])
+		t = fmt.Sprintf(t, s[i])
 	}
-	hash := sha256.Sum256([]byte(str))
+	hash := sha256.Sum256([]byte(t))
 	return string(hash[:len(hash)])
 }
 
-func newTicker(d time.Duration) <-chan time.Time {
-	ticker := time.NewTicker(d).C
-	ch := make(chan time.Time)
+func newTicker(d time.Duration) *ticker {
+	stdTicker := time.NewTicker(d)
+	c := make(chan time.Time, 1)
+	newTicker := &ticker{C: c}
 	go func() {
-		ch <- time.Now()
-		for _ = range ticker {
-			ch <- time.Now()
+		newTicker.C <- time.Now()
+		for _ = range stdTicker.C {
+			newTicker.C <- time.Now()
+			fmt.Println("add to ticker")
 		}
 	}()
-	return ch
+	return newTicker
 }

@@ -3,6 +3,7 @@ package main
 import (
 	tc "github.com/guidewire/teamcity-go-bindings"
 	"github.com/prometheus/client_golang/prometheus"
+	"time"
 )
 
 type Instance struct {
@@ -23,11 +24,15 @@ type Configuration struct {
 	Instances []Instance `json:"instances"`
 }
 
-type Exporter struct {
-	client     *tc.Client
-	instanceId string
+type Collector struct {
+	startTime *prometheus.Desc
 }
 
-type teamcityCollector struct {
-	startTime *prometheus.Desc
+type Label struct {
+	Name  string
+	Value string
+}
+
+type ticker struct {
+	C chan time.Time
 }
