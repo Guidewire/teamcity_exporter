@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/fatih/structs"
+	"github.com/sirupsen/logrus"
 )
 
 func toSnakeCase(s string) string {

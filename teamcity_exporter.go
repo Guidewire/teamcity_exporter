@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/Sirupsen/logrus"
 	tc "github.com/guidewire/teamcity-go-bindings"
 	"github.com/orcaman/concurrent-map"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
