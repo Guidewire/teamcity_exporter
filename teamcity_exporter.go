@@ -23,50 +23,7 @@ const (
 	namespace = "teamcity"
 )
 
-var (
-	metricsStorage = cmap.New()
-	config         = Configuration{
-		Instances: []Instance{
-			{"instance1",
-				"https://teamcity",
-				"login",
-				"password",
-				30, /* Scrape interval */
-				[]BuildFilter{
-					{Name: "name1",
-						Filter: tc.BuildLocator{"", /* BuildType */
-							"",        /* Branch */
-							"success", /* Status */
-							"false",   /* Running */
-							"false",   /* Canceled */
-							"1" /* Count */}},
-				},
-			},
-			{"instance2",
-				"https://teamcity2",
-				"login",
-				"password",
-				30, /* Scrape interval */
-				[]BuildFilter{
-					{Name: "name2",
-						Filter: tc.BuildLocator{"ca_generation_1", /* BuildType */
-							"",        /* Branch */
-							"success", /* Status */
-							"false",   /* Running */
-							"false",   /* Canceled */
-							"1" /* Count */}},
-					{Name: "name3",
-						Filter: tc.BuildLocator{"ca_generation_2", /* BuildType */
-							"",        /* Branch */
-							"success", /* Status */
-							"false",   /* Running */
-							"false",   /* Canceled */
-							"1" /* Count */}},
-				},
-			},
-		},
-	}
-)
+var metricsStorage = cmap.New()
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -79,8 +36,18 @@ func main() {
 		listenAddress = flag.String("web.listen-address", ":9107", "Address to listen on for web interface and telemetry.")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 		logLevel      = flag.String("loglevel", "info", "Changes log level, available values: info/debug")
+		configPath    = flag.String("config", "config.yaml", "Path to configuration file")
 	)
 	flag.Parse()
+
+	config := Configuration{}
+	err := config.parseConfig(*configPath)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": *configPath,
+		}).Error(err)
+		os.Exit(1)
+	}
 
 	switch {
 	case *logLevel == "debug":

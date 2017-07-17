@@ -12,12 +12,12 @@ type Instance struct {
 	Username       string        `yaml:"username"`
 	Password       string        `yaml:"password"`
 	ScrapeInterval int64         `yaml:"scrape_interval"`
-	BuildsFilters  []BuildFilter `yaml:"builds_filters"`
+	BuildsFilters  []BuildFilter `yaml:"build_filters"`
 }
 
 type BuildFilter struct {
-	Name   string `yaml:"name"`
-	Filter tc.BuildLocator
+	Name   string          `yaml:"name"`
+	Filter tc.BuildLocator `yaml:"filter"`
 }
 
 type Configuration struct {
