@@ -35,18 +35,20 @@ func main() {
 		showVersion   = flag.Bool("version", false, "Print version information")
 		listenAddress = flag.String("web.listen-address", ":9107", "Address to listen on for web interface and telemetry")
 		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics")
-		logLevel      = flag.String("logLevel", "info", "Changes log level, available values: info/debug")
 		configPath    = flag.String("config", "config.yaml", "Path to configuration file")
 	)
 	flag.Parse()
 
-	switch {
-	case *logLevel == "debug":
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debug("Debug logging was enabled")
-	default:
-		logrus.SetLevel(logrus.InfoLevel)
+	logrus.Info("Starting teamcity_exporter" + version.Info())
+	logrus.Info("Build context", version.BuildContext())
+
+	level, err := logrus.ParseLevel(strings.Replace(flag.Lookup("log.level").Value.String(), "\"", "", -1))
+	if err != nil {
+		logrus.Error(err)
+		os.Exit(1)
 	}
+	logrus.SetLevel(level)
+	logrus.Infof("Log level was set to %s", level.String())
 
 	if *showVersion {
 		fmt.Fprintln(os.Stdout, version.Print("teamcity_exporter"))
@@ -54,16 +56,13 @@ func main() {
 	}
 
 	config := Configuration{}
-	err := config.parseConfig(*configPath)
+	err = config.parseConfig(*configPath)
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"config": *configPath,
 		}).Error(err)
 		os.Exit(1)
 	}
-
-	logrus.Info("Starting teamcity_exporter" + version.Info())
-	logrus.Info("Build context", version.BuildContext())
 
 	collector := NewCollector()
 	prometheus.MustRegister(collector)
