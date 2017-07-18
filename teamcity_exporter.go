@@ -44,15 +44,14 @@ func main() {
 
 	level, err := logrus.ParseLevel(strings.Replace(flag.Lookup("log.level").Value.String(), "\"", "", -1))
 	if err != nil {
-		logrus.Error(err)
-		os.Exit(1)
+		logrus.Fatal(err)
 	}
 	logrus.SetLevel(level)
 	logrus.Infof("Log level was set to %s", level.String())
 
 	if *showVersion {
 		fmt.Fprintln(os.Stdout, version.Print("teamcity_exporter"))
-		os.Exit(0)
+		return
 	}
 
 	config := Configuration{}
@@ -60,8 +59,13 @@ func main() {
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"config": *configPath,
-		}).Error(err)
-		os.Exit(1)
+		}).Fatal(err)
+	}
+
+	if err := config.validateConfig(); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": *configPath,
+		}).Fatal(err)
 	}
 
 	collector := NewCollector()
