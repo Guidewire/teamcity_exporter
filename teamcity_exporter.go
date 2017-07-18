@@ -32,22 +32,13 @@ func init() {
 
 func main() {
 	var (
-		showVersion   = flag.Bool("version", false, "Print version information.")
-		listenAddress = flag.String("web.listen-address", ":9107", "Address to listen on for web interface and telemetry.")
-		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-		logLevel      = flag.String("loglevel", "info", "Changes log level, available values: info/debug")
+		showVersion   = flag.Bool("version", false, "Print version information")
+		listenAddress = flag.String("web.listen-address", ":9107", "Address to listen on for web interface and telemetry")
+		metricsPath   = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics")
+		logLevel      = flag.String("logLevel", "info", "Changes log level, available values: info/debug")
 		configPath    = flag.String("config", "config.yaml", "Path to configuration file")
 	)
 	flag.Parse()
-
-	config := Configuration{}
-	err := config.parseConfig(*configPath)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"config": *configPath,
-		}).Error(err)
-		os.Exit(1)
-	}
 
 	switch {
 	case *logLevel == "debug":
@@ -60,6 +51,15 @@ func main() {
 	if *showVersion {
 		fmt.Fprintln(os.Stdout, version.Print("teamcity_exporter"))
 		os.Exit(0)
+	}
+
+	config := Configuration{}
+	err := config.parseConfig(*configPath)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"config": *configPath,
+		}).Error(err)
+		os.Exit(1)
 	}
 
 	logrus.Info("Starting teamcity_exporter" + version.Info())
