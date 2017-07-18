@@ -2,17 +2,19 @@ package main
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/xid"
+	"time"
 )
 
 func NewCollector() *Collector {
-	return &Collector{
-		startTime: prometheus.NewDesc(xid.New().String(), "collector ID", nil, nil),
+	col := &Collector{
+		startupTime: prometheus.NewDesc(namespace+"_collector_startup_time", "Collector startup time", nil, nil),
 	}
+	metricsStorage.Set(getHash(col.startupTime.String()), prometheus.MustNewConstMetric(col.startupTime, prometheus.GaugeValue, float64(time.Now().Unix())))
+	return col
 }
 
 func (col *Collector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- col.startTime
+	ch <- col.startupTime
 }
 
 func (col *Collector) Collect(ch chan<- prometheus.Metric) {

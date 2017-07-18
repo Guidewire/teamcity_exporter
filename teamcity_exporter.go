@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	tc "github.com/guidewire/teamcity-go-bindings"
@@ -24,6 +25,14 @@ const (
 )
 
 var metricsStorage = cmap.New()
+
+var (
+	instanceStatus = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "instance_status"),
+		"Teamcity instance status",
+		[]string{"instance"}, nil,
+	)
+)
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
@@ -54,6 +63,9 @@ func main() {
 		return
 	}
 
+	collector := NewCollector()
+	prometheus.MustRegister(collector)
+
 	config := Configuration{}
 	err = config.parseConfig(*configPath)
 	if err != nil {
@@ -68,15 +80,12 @@ func main() {
 		}).Fatal(err)
 	}
 
-	collector := NewCollector()
-	prometheus.MustRegister(collector)
-
 	for i := range config.Instances {
 		logrus.WithFields(logrus.Fields{
 			"instance":       config.Instances[i].Name,
 			"scrapeInterval": config.Instances[i].ScrapeInterval,
 		}).Debug("Found Teamcity instance, preparing for metrics collection")
-		go collectInstancesStat(config.Instances[i])
+		go config.Instances[i].collectInstancesStat()
 	}
 
 	http.Handle(*metricsPath, prometheus.Handler())
@@ -93,7 +102,28 @@ func main() {
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
 
-func collectInstancesStat(i Instance) {
+func (i *Instance) validateStatus() error {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", i.URL, nil)
+	if err != nil {
+		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
+		return err
+	}
+	req.SetBasicAuth(i.Username, i.Password)
+	resp, err := client.Do(req)
+	if err != nil {
+		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
+		return err
+	}
+	if resp.StatusCode == 401 {
+		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
+		return errors.New(fmt.Sprintf("Unauthorized %s", i.Name))
+	}
+	metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 1, i.Name))
+	return nil
+}
+
+func (i *Instance) collectInstancesStat() {
 	client := tc.New(i.URL, i.Username, i.Password)
 	wg := &sync.WaitGroup{}
 
@@ -104,6 +134,12 @@ func collectInstancesStat(i Instance) {
 			"timestamp":   time.Now().Unix(),
 			"storageSize": len(metricsStorage.Keys()),
 		}).Debug("Got message from ticker, starting metrics collection")
+		if err := i.validateStatus(); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"instance": i.Name,
+			}).Error(err)
+			continue
+		}
 		logrus.WithFields(logrus.Fields{
 			"instance": i.Name,
 		}).Debug(fmt.Sprintf("Found %d build filters for instance, looping against filters", len(i.BuildsFilters)))
@@ -113,7 +149,7 @@ func collectInstancesStat(i Instance) {
 			}).Debug("Found build filter, preparing request for Teamcity")
 			if i.BuildsFilters[v].Filter.BuildType != "" {
 				wg.Add(1)
-				go collectBuildsStat(client, i.Name, i.BuildsFilters[v], wg)
+				go i.BuildsFilters[v].collectBuildsStat(client, i.Name, wg)
 			} else {
 				logrus.WithFields(logrus.Fields{
 					"instance": i.Name,
@@ -131,7 +167,7 @@ func collectInstancesStat(i Instance) {
 						"instance": i.Name,
 					}).Debug("Found build configuration")
 					wg.Add(1)
-					go collectBuildsStat(client, i.Name, f, wg)
+					go f.collectBuildsStat(client, i.Name, wg)
 				}
 			}
 		}
@@ -142,7 +178,7 @@ func collectInstancesStat(i Instance) {
 	}
 }
 
-func collectBuildsStat(c *tc.Client, inst string, filter BuildFilter, wg *sync.WaitGroup) {
+func (filter *BuildFilter) collectBuildsStat(c *tc.Client, inst string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	stat, err := c.GetBuildStatistics(filter.Filter)

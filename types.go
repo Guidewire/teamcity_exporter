@@ -25,7 +25,7 @@ type Configuration struct {
 }
 
 type Collector struct {
-	startTime *prometheus.Desc
+	startupTime *prometheus.Desc
 }
 
 type Label struct {
