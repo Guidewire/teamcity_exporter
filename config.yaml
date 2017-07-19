@@ -3,7 +3,7 @@ instances:
   url: https://gwre-devexp-ci-production-devci.gwre-devops.net
   username: login
   password: password
-  scrape_interval: 30
+  scrape_interval: 100
   build_filters:
   - name: filter1
     filter:
@@ -15,7 +15,7 @@ instances:
   url: https://gwre-devexp-ci-poc-kdc-devci.gwre-devops.net
   username: login
   password: password
-  scrape_interval: 15
+  scrape_interval: 80
   build_filters:
   - name: filter1
     filter:
@@ -24,7 +24,7 @@ instances:
       running: false
       canceled: false
       count: 1
-  - name: name3
+  - name: filter2
     filter:
       build_type: ca_generation_2
       branch: master

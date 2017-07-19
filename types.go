@@ -7,17 +7,20 @@ import (
 )
 
 type Instance struct {
-	Name           string        `yaml:"name"`
-	URL            string        `yaml:"url"`
-	Username       string        `yaml:"username"`
-	Password       string        `yaml:"password"`
-	ScrapeInterval int64         `yaml:"scrape_interval"`
-	BuildsFilters  []BuildFilter `yaml:"build_filters"`
+	Name            string        `yaml:"name"`
+	URL             string        `yaml:"url"`
+	Username        string        `yaml:"username"`
+	Password        string        `yaml:"password"`
+	ScrapeInterval  int64         `yaml:"scrape_interval"`
+	BuildsFilters   []BuildFilter `yaml:"build_filters"`
+	startProcessing int64
 }
 
 type BuildFilter struct {
-	Name   string          `yaml:"name"`
-	Filter tc.BuildLocator `yaml:"filter"`
+	Name            string          `yaml:"name"`
+	Filter          tc.BuildLocator `yaml:"filter"`
+	startProcessing int64
+	instance        string
 }
 
 type Configuration struct {

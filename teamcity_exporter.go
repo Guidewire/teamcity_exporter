@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 	"github.com/prometheus/common/version"
+	"github.com/rs/xid"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	_ "net/http/pprof"
@@ -31,6 +32,26 @@ var (
 		prometheus.BuildFQName(namespace, "", "instance_status"),
 		"Teamcity instance status",
 		[]string{"instance"}, nil,
+	)
+	instanceLastScrapeFinishTime = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "instance_last_scrape_finish_time"),
+		"Teamcity instance last scrape finish time",
+		[]string{"instance"}, nil,
+	)
+	filterLastScrapeFinishTime = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "filter_last_scrape_finish_time"),
+		"Teamcity instance filter last scrape finish time",
+		[]string{"instance", "filter"}, nil,
+	)
+	instanceLastScrapeDuration = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "instance_last_scrape_duration"),
+		"Teamcity instance last scrape duration",
+		[]string{"instance"}, nil,
+	)
+	filterLastScrapeDuration = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "filter_last_scrape_duration"),
+		"Teamcity instance filter last scrape duration",
+		[]string{"instance", "filter"}, nil,
 	)
 )
 
@@ -82,9 +103,11 @@ func main() {
 
 	for i := range config.Instances {
 		logrus.WithFields(logrus.Fields{
+			"config":         *configPath,
 			"instance":       config.Instances[i].Name,
 			"scrapeInterval": config.Instances[i].ScrapeInterval,
-		}).Debug("Found Teamcity instance, preparing for metrics collection")
+			"filtersNumber":  len(config.Instances[i].BuildsFilters),
+		}).Debug("Reading configuration, found teamcity instance")
 		go config.Instances[i].collectInstancesStat()
 	}
 
@@ -123,86 +146,123 @@ func (i *Instance) validateStatus() error {
 	return nil
 }
 
-func (i *Instance) collectInstancesStat() {
+func (i Instance) collectInstancesStat() {
 	client := tc.New(i.URL, i.Username, i.Password)
 	wg := &sync.WaitGroup{}
 
 	ticker := newTicker(time.Duration(i.ScrapeInterval) * time.Second)
 	for _ = range ticker.C {
+		i.startProcessing = time.Now().Unix()
+
+		routineID := xid.New().String()
+
 		logrus.WithFields(logrus.Fields{
-			"instance":    i.Name,
-			"timestamp":   time.Now().Unix(),
-			"storageSize": len(metricsStorage.Keys()),
-		}).Debug("Got message from ticker, starting metrics collection")
+			"instance":          i.Name,
+			"filtersNumber":     len(i.BuildsFilters),
+			"timestamp":         i.startProcessing,
+			"time":              time.Now(),
+			"instanceRoutineID": routineID,
+		}).Debug("Starting metrics collection")
+
 		if err := i.validateStatus(); err != nil {
 			logrus.WithFields(logrus.Fields{
-				"instance": i.Name,
+				"instance":          i.Name,
+				"instanceRoutineID": routineID,
 			}).Error(err)
 			continue
 		}
-		logrus.WithFields(logrus.Fields{
-			"instance": i.Name,
-		}).Debug(fmt.Sprintf("Found %d build filters for instance, looping against filters", len(i.BuildsFilters)))
 		for v := range i.BuildsFilters {
-			logrus.WithFields(logsFormatter(i.BuildsFilters[v].Filter)).WithFields(logrus.Fields{
-				"instance": i.Name,
-			}).Debug("Found build filter, preparing request for Teamcity")
-			if i.BuildsFilters[v].Filter.BuildType != "" {
-				wg.Add(1)
-				go i.BuildsFilters[v].collectBuildsStat(client, i.Name, wg)
-			} else {
-				logrus.WithFields(logrus.Fields{
-					"instance": i.Name,
-				}).Debug("Filter has no build configuration specified, will run against all available configurations")
-				buildCfgs, err := client.GetAllBuildConfigurations()
-				if err != nil {
-					logrus.WithFields(logrus.Fields{
-						"instance": i.URL,
-					}).Error(err)
-				}
-				for z := range buildCfgs.BuildType {
-					f := i.BuildsFilters[v]
-					f.Filter.BuildType = buildCfgs.BuildType[z].ID
-					logrus.WithFields(logsFormatter(f)).WithFields(logrus.Fields{
-						"instance": i.Name,
-					}).Debug("Found build configuration")
-					wg.Add(1)
-					go f.collectBuildsStat(client, i.Name, wg)
-				}
-			}
+			wg.Add(1)
+			i.BuildsFilters[v].instance = i.Name
+			go i.BuildsFilters[v].parseBuildsFilter(client, wg)
 		}
 		wg.Wait()
+		metricsStorage.Set(getHash(instanceLastScrapeFinishTime.String(), i.Name), prometheus.MustNewConstMetric(instanceLastScrapeFinishTime, prometheus.GaugeValue, float64(time.Now().Unix()), i.Name))
+		metricsStorage.Set(getHash(instanceLastScrapeDuration.String(), i.Name), prometheus.MustNewConstMetric(instanceLastScrapeDuration, prometheus.GaugeValue, float64(time.Now().Unix()-i.startProcessing), i.Name))
 		logrus.WithFields(logrus.Fields{
-			"instance": i.Name,
-		}).Debug("Scraping job finished, waiting for a signal from ticker")
+			"instance":          i.Name,
+			"instanceRoutineID": routineID,
+			"storageSize":       metricsStorage.Count(),
+			"timestamp":         time.Now().Unix(),
+			"time":              time.Now(),
+			"duration":          time.Now().Unix() - i.startProcessing,
+		}).Debug("Successfully collected metrics for instance")
 	}
 }
 
-func (filter *BuildFilter) collectBuildsStat(c *tc.Client, inst string, wg *sync.WaitGroup) {
+func (f BuildFilter) parseBuildsFilter(c *tc.Client, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	stat, err := c.GetBuildStatistics(filter.Filter)
+	f.startProcessing = time.Now().Unix()
+
+	wgFilter := &sync.WaitGroup{}
+
+	if f.Filter.BuildType != "" {
+		wgFilter.Add(1)
+		go f.collectBuildsStat(c, wgFilter)
+	} else {
+		buildCfgs, err := c.GetAllBuildConfigurations()
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"instance": f.instance,
+				"filter":   f.Name,
+			}).Error(err)
+		}
+		for z := range buildCfgs.BuildType {
+			f.Filter.BuildType = buildCfgs.BuildType[z].ID
+			wgFilter.Add(1)
+			go f.collectBuildsStat(c, wgFilter)
+		}
+	}
+	wgFilter.Wait()
+	metricsStorage.Set(getHash(filterLastScrapeFinishTime.String(), f.instance, f.Name), prometheus.MustNewConstMetric(filterLastScrapeFinishTime, prometheus.GaugeValue, float64(time.Now().Unix()), f.instance, f.Name))
+	metricsStorage.Set(getHash(filterLastScrapeDuration.String(), f.instance, f.Name), prometheus.MustNewConstMetric(filterLastScrapeDuration, prometheus.GaugeValue, float64(time.Now().Unix()-f.startProcessing), f.instance, f.Name))
+}
+
+func (f BuildFilter) collectBuildsStat(c *tc.Client, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	routineID := xid.New().String()
+
+	stat, err := c.GetBuildStatistics(f.Filter)
 	if err != nil {
-		logrus.WithFields(logsFormatter(filter.Filter)).WithFields(logrus.Fields{
-			"instance": inst,
-			"filter":   filter.Name,
+		logrus.WithFields(logsFormatter(f.Filter)).WithFields(logrus.Fields{
+			"filter":          f.Name,
+			"instance":        f.instance,
+			"filterRoutineID": routineID,
 		}).Error(err)
 	}
 
-	logrus.WithFields(logsFormatter(filter.Filter)).WithFields(logrus.Fields{
-		"instance":        inst,
-		"filter":          filter.Name,
-		"metricsGathered": stat.Count,
-	}).Debug("Gathered build metrics based on provided filter")
+	if len(stat.Property) == 0 {
+		logrus.WithFields(logsFormatter(f.Filter)).WithFields(logrus.Fields{
+			"filter":           f.Name,
+			"instance":         f.instance,
+			"metricsCollected": len(stat.Property),
+			"filterRoutineID":  routineID,
+			"timestamp":        time.Now().Unix(),
+			"time":             time.Now(),
+			"duration":         time.Now().Unix() - f.startProcessing,
+		}).Debug("No metrics collected for filter")
+		return
+	}
+	logrus.WithFields(logsFormatter(f.Filter)).WithFields(logrus.Fields{
+		"filter":           f.Name,
+		"instance":         f.instance,
+		"metricsCollected": len(stat.Property),
+		"filterRoutineID":  routineID,
+		"timestamp":        time.Now().Unix(),
+		"time":             time.Now(),
+		"duration":         time.Now().Unix() - f.startProcessing,
+	}).Debug("Successfully collected metrics for filter")
 
-	for i := range stat.Property {
-		value, _ := strconv.ParseFloat(stat.Property[i].Value, 64)
-		metric := strings.SplitN(stat.Property[i].Name, ":", 2)
+	for k := range stat.Property {
+		value, _ := strconv.ParseFloat(stat.Property[k].Value, 64)
+		metric := strings.SplitN(stat.Property[k].Name, ":", 2)
 		title := toSnakeCase(metric[0])
 
 		labels := []Label{
-			{"exporter_instance", inst},
-			{"exporter_filter", filter.Name},
+			{"exporter_instance", f.instance},
+			{"exporter_filter", f.Name},
 			{"build_configuration", stat.UsedFilter.BuildType},
 		}
 		if len(metric) > 1 {
@@ -210,16 +270,23 @@ func (filter *BuildFilter) collectBuildsStat(c *tc.Client, inst string, wg *sync
 		}
 
 		labelsTitles, labelsValues := []string{}, []string{}
-		for i := range labels {
-			labelsTitles = append(labelsTitles, labels[i].Name)
-			labelsValues = append(labelsValues, labels[i].Value)
+		for v := range labels {
+			labelsTitles = append(labelsTitles, labels[v].Name)
+			labelsValues = append(labelsValues, labels[v].Value)
 		}
 
 		desc := prometheus.NewDesc(title, title, labelsTitles, nil)
 		metricsStorage.Set(getHash(title, labelsValues...), prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, value, labelsValues...))
 		logrus.WithFields(logrus.Fields{
-			"name":  title,
-			"value": value,
+			"name":                title,
+			"value":               value,
+			"labels":              labels,
+			"filter":              f.Name,
+			"instance":            f.instance,
+			"build_configuration": stat.UsedFilter.BuildType,
+			"filterRoutineID":     routineID,
+			"timestamp":           time.Now().Unix(),
+			"time":                time.Now(),
 		}).Debug("Saving metric to temporary storage")
 	}
 }
