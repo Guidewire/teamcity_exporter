@@ -12,7 +12,7 @@ type Instance struct {
 	Username        string        `yaml:"username"`
 	Password        string        `yaml:"password"`
 	ScrapeInterval  int64         `yaml:"scrape_interval"`
-	BuildsFilters   []BuildFilter `yaml:"build_filters"`
+	BuildsFilters   []BuildFilter `yaml:"builds_filters"`
 	startProcessing int64
 }
 

@@ -4,7 +4,7 @@ instances:
   username: login
   password: password
   scrape_interval: 100
-  build_filters:
+  builds_filters:
   - name: filter1
     filter:
       status: success
@@ -16,7 +16,7 @@ instances:
   username: login
   password: password
   scrape_interval: 80
-  build_filters:
+  builds_filters:
   - name: filter1
     filter:
       build_type: ca_generation_1
