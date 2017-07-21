@@ -21,10 +21,10 @@
 			"revisionTime": "2017-07-12T04:22:13Z"
 		},
 		{
-			"checksumSHA1": "YwROOmX9CJZqMaQxy6RCpS6hiYg=",
+			"checksumSHA1": "goFtBOd0+H7y7aPLhTFX/k3o5q8=",
 			"path": "github.com/guidewire/teamcity-go-bindings",
-			"revision": "6c17f5d9940a0627838c47e1b778e128dd6549b7",
-			"revisionTime": "2017-07-16T22:48:21Z"
+			"revision": "0f4b70c82f0cfd59c1ef89435a949dbfc84732cb",
+			"revisionTime": "2017-07-21T14:40:01Z"
 		},
 		{
 			"checksumSHA1": "bKMZjd2wPw13VwoE7mBeSv5djFA=",

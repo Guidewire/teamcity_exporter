@@ -10,7 +10,6 @@ instances:
       status: success
       running: false
       canceled: false
-      count: 1
 - name: instance2
   url: https://gwre-devexp-ci-poc-kdc-devci.gwre-devops.net
   username: login
@@ -23,7 +22,6 @@ instances:
       status: failure
       running: false
       canceled: false
-      count: 1
   - name: filter2
     filter:
       build_type: ca_generation_2
@@ -31,4 +29,3 @@ instances:
       status: success
       running: false
       canceled: false
-      count: 1

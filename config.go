@@ -40,9 +40,6 @@ func (c *Configuration) validateConfig() error {
 		if c.Instances[i].ScrapeInterval == int64(0) {
 			return errors.New(fmt.Sprintf("Configuration error. Field 'scrape_interval' is empty for instance '%s'\n", c.Instances[i].Name))
 		}
-		if len(c.Instances[i].BuildsFilters) == 0 {
-			return errors.New(fmt.Sprintf("Configuration error. No builds filters found for instance is empty for instance '%s'\n", c.Instances[i].Name))
-		}
 
 		for v := range c.Instances[i].BuildsFilters {
 			for k := range c.Instances[i].BuildsFilters {

@@ -58,3 +58,11 @@ func newTicker(d time.Duration) *ticker {
 	}()
 	return newTicker
 }
+
+func labelsToString(l []Label) string {
+	res := ""
+	for i := range l {
+		res += l[i].Name + "→" + l[i].Value + ","
+	}
+	return strings.TrimRight(res, ",")
+}
