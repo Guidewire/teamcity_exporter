@@ -38,3 +38,8 @@ type Label struct {
 type ticker struct {
 	C chan time.Time
 }
+
+type BuildStatistics struct {
+	Build tc.Build
+	Stat  tc.BuildStatistics
+}
