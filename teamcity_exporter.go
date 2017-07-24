@@ -134,7 +134,12 @@ func (i *Instance) prepareFilters(c *tc.Client, wg *sync.WaitGroup, ch chan<- Bu
 		b := map[tc.BuildTypeID][]tc.Branch{}
 
 		if i.BuildsFilters[k].Filter.BuildType == "" {
-			bt, _ = c.GetAllBuildConfigurations()
+			var err error
+			bt, err = c.GetAllBuildConfigurations()
+			if err != nil {
+				log.Errorf("Failed to query available build configurations for instance '%s': %v", i.Name, err)
+			}
+			continue
 		} else {
 			bt = tc.BuildConfiguration{BuildTypes: []tc.BuildType{{ID: tc.BuildTypeID(i.BuildsFilters[k].Filter.BuildType)}}}
 		}
