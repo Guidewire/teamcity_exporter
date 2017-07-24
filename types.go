@@ -16,10 +16,9 @@ type Instance struct {
 }
 
 type BuildFilter struct {
-	Name            string          `yaml:"name"`
-	Filter          tc.BuildLocator `yaml:"filter"`
-	startProcessing time.Time
-	instance        string
+	Name     string          `yaml:"name"`
+	Filter   tc.BuildLocator `yaml:"filter"`
+	instance string
 }
 
 type Configuration struct {
@@ -35,11 +34,16 @@ type Label struct {
 	Value string
 }
 
-type ticker struct {
-	C chan time.Time
+type Ticker struct {
+	c chan time.Time
 }
 
 type BuildStatistics struct {
-	Build tc.Build
+	Build Build
 	Stat  tc.BuildStatistics
+}
+
+type Build struct {
+	Details tc.Build
+	Filter  BuildFilter
 }

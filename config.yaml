@@ -1,15 +1,15 @@
 instances:
-# - name: instance1
-#   url: https://gwre-devexp-ci-production-devci.gwre-devops.net
-#   username: login
-#   password: password
-#   scrape_interval: 100
-#   builds_filters:
-#   - name: filter1
-#     filter:
-#       status: success
-#       running: false
-#       canceled: false
+- name: instance1
+  url: https://gwre-devexp-ci-poc-kdc-devci.gwre-devops.net
+  username: login
+  password: password
+  scrape_interval: 100
+  builds_filters:
+  - name: filter1
+    filter:
+      status: success
+      running: false
+      canceled: false
 - name: instance2
   url: https://gwre-devexp-ci-production-devci.gwre-devops.net
   username: login
@@ -19,14 +19,6 @@ instances:
   - name: filter1
     filter:
       build_type: BillingCenter_Autobuild
-      # branch: g-master
-      # status: failure
-      # running: false
-      # canceled: false
-  # - name: filter2
-  #   filter:
-  #     build_type: ca_generation_2
-  #     branch: master
-  #     status: success
-  #     running: false
-  #     canceled: false
+      status: success
+      running: false
+      canceled: false

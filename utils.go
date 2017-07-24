@@ -6,9 +6,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/fatih/structs"
-	"github.com/sirupsen/logrus"
 )
 
 func toSnakeCase(s string) string {
@@ -26,18 +23,6 @@ func toSnakeCase(s string) string {
 	return strings.ToLower(strings.Join(a, "_"))
 }
 
-func logsFormatter(f interface{}) logrus.Fields {
-	m := structs.Map(f)
-	r := logrus.Fields{}
-	for k, v := range m {
-		if v == "" {
-			continue
-		}
-		r[strings.ToLower(k)] = v
-	}
-	return r
-}
-
 func getHash(t string, s ...string) string {
 	for i := range s {
 		t = fmt.Sprintf(t, s[i])
@@ -46,14 +31,14 @@ func getHash(t string, s ...string) string {
 	return string(hash[:len(hash)])
 }
 
-func newTicker(d time.Duration) *ticker {
+func newTicker(d time.Duration) *Ticker {
 	stdTicker := time.NewTicker(d)
-	c := make(chan time.Time, 1)
-	newTicker := &ticker{C: c}
+	ch := make(chan time.Time, 1)
+	newTicker := &Ticker{c: ch}
 	go func() {
-		newTicker.C <- time.Now()
+		newTicker.c <- time.Now()
 		for _ = range stdTicker.C {
-			newTicker.C <- time.Now()
+			newTicker.c <- time.Now()
 		}
 	}()
 	return newTicker
