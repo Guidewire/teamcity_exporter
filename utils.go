@@ -37,17 +37,9 @@ func newTicker(d time.Duration) *Ticker {
 	newTicker := &Ticker{c: ch}
 	go func() {
 		newTicker.c <- time.Now()
-		for _ = range stdTicker.C {
+		for range stdTicker.C {
 			newTicker.c <- time.Now()
 		}
 	}()
 	return newTicker
-}
-
-func labelsToString(l []Label) string {
-	res := ""
-	for i := range l {
-		res += l[i].Name + "→" + l[i].Value + ","
-	}
-	return strings.TrimRight(res, ",")
 }

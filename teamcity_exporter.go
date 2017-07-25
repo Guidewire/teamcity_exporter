@@ -4,11 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	tc "github.com/guidewire/teamcity-go-bindings"
-	"github.com/orcaman/concurrent-map"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
-	"github.com/prometheus/common/version"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -17,6 +12,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	tc "github.com/guidewire/teamcity-go-bindings"
+	"github.com/orcaman/concurrent-map"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/version"
 )
 
 const (
