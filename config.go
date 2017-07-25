@@ -25,8 +25,8 @@ func (c *Configuration) validateConfig() error {
 		if c.Instances[i].URL == "" {
 			return fmt.Errorf("Configuration error. Field 'url' is empty for instance '%s'", c.Instances[i].Name)
 		}
-		r, _ := regexp.Compile("^http://|https://")
-		if r.Match([]byte(c.Instances[i].URL)) {
+		re := regexp.MustCompile("^http://|https://")
+		if !re.Match([]byte(c.Instances[i].URL)) {
 			return fmt.Errorf("Configuration error. Field 'url' must start from http:// or https:// prefix in instance '%s'", c.Instances[i].Name)
 		}
 		if c.Instances[i].Username == "" {
