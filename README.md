@@ -24,12 +24,12 @@ Export all the metrics that Teamcity's _/statistics_ endpoint [provides](https:/
 ./teamcity_exporter --help
 ```
 
-* __`config`:__ Path to configuration file.
-* __`web.listen-address`:__ Address to listen on for web interface and telemetry.
-* __`web.telemetry-path`:__ Path under which to expose metrics.
-* __`log.level`:__ Logging level. `info` by default.
+* __`config`:__ Path to configuration file
+* __`web.listen-address`:__ Address to listen on for web interface and telemetry
+* __`web.telemetry-path`:__ Path under which to expose metrics
+* __`log.level`:__ Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]
 * __`log.format`:__ Set the log target and format. Example: `logger:syslog?appname=bob&local=7` or `logger:stdout?json=true` (default `logger:stderr`)
-* __`version`:__ Print current version.
+* __`version`:__ Print current version
 
 ## Configuration
 Configuration template:
@@ -47,7 +47,6 @@ instances:
       status: success
       running: false
       canceled: false
-      count: 1
 - name: instance2
   url: https://teamcity-instance2.com
   username: login
@@ -60,7 +59,6 @@ instances:
       status: failure
       running: false
       canceled: false
-      count: 1
   - name: filter2
     filter:
       build_type: filter1
@@ -68,7 +66,6 @@ instances:
       status: success
       running: false
       canceled: false
-      count: 1
 ```
 
 ### Available builds filters
@@ -79,6 +76,5 @@ instances:
 | status      | `success`/`failure`/`error` | list builds with the specified status only |
 | running     | `true`/`false`/`any` | limit builds by the running flag. By default, running builds are not included. |
 | canceled    | `true`/`false`/`any` | limit builds by the canceled flag. By default, canceled builds are not included. |
-| count       | any number, example `1` | serve only the specified number of builds |
 
 For more details, read official Teamcity [documentation](https://confluence.jetbrains.com/display/TCD10/REST+API#RESTAPI-BuildLocator). At the moment not all the filters' parameters are available in this project.
