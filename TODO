@@ -1,0 +1,4 @@
+- external configuration in yaml
+- config validation function
+- vendor dependencies
+- refine logging (print ids for routines in logs?)
