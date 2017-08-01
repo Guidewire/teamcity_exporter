@@ -1,18 +1,20 @@
 package main
 
 import (
+	"time"
+
 	tc "github.com/guidewire/teamcity-go-bindings"
 	"github.com/prometheus/client_golang/prometheus"
-	"time"
 )
 
 type Instance struct {
-	Name           string        `yaml:"name"`
-	URL            string        `yaml:"url"`
-	Username       string        `yaml:"username"`
-	Password       string        `yaml:"password"`
-	ScrapeInterval int64         `yaml:"scrape_interval"`
-	BuildsFilters  []BuildFilter `yaml:"builds_filters"`
+	Name             string        `yaml:"name"`
+	URL              string        `yaml:"url"`
+	Username         string        `yaml:"username"`
+	Password         string        `yaml:"password"`
+	ScrapeInterval   int           `yaml:"scrape_interval"`
+	ConcurrencyLimit int           `yaml:"concurrency_limit"`
+	BuildsFilters    []BuildFilter `yaml:"builds_filters"`
 }
 
 type BuildFilter struct {

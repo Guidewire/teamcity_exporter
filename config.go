@@ -35,7 +35,7 @@ func (c *Configuration) validateConfig() error {
 		if c.Instances[i].Password == "" {
 			return fmt.Errorf("Configuration error. Field 'password' is empty for instance '%s'", c.Instances[i].Name)
 		}
-		if c.Instances[i].ScrapeInterval == int64(0) {
+		if c.Instances[i].ScrapeInterval == 0 {
 			return fmt.Errorf("Configuration error. Field 'scrape_interval' is empty for instance '%s'", c.Instances[i].Name)
 		}
 

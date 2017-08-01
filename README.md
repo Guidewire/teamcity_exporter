@@ -36,32 +36,34 @@ Configuration template:
 
 ```yaml
 instances:
-- name: instance1
-  url: https://teamcity-instance1.com
+- name: prod
+  url: https://teamcity-prod.com
   username: login
   password: password
   scrape_interval: 100 # seconds
+  concurrency_limit: 10 # simultaneous Teamcity connections
   builds_filters:
-  - name: filter1
+  - name: prod-filter1
     filter:
       status: success
       running: false
       canceled: false
-- name: instance2
-  url: https://teamcity-instance2.com
+- name: dev
+  url: https://teamcity-dev.com
   username: login
   password: password
   scrape_interval: 80 # seconds
+  concurrency_limit: 10 # simultaneous Teamcity connections
   builds_filters:
-  - name: filter1
+  - name: dev-filter1
     filter:
-      build_type: filter1
+      build_type: buildtype1
       status: failure
       running: false
       canceled: false
-  - name: filter2
+  - name: dev-filter2
     filter:
-      build_type: filter1
+      build_type: buildtype2
       branch: master
       status: success
       running: false
