@@ -222,14 +222,16 @@ func (i *Instance) validateStatus(client *tc.Client) error {
 	}
 
 	resp, err := client.HTTPClient.Do(req)
-	if resp.StatusCode == 401 {
+	if resp != nil && resp.StatusCode == 401 {
 		req.SetBasicAuth(i.Username, i.Password)
 		resp, err = client.HTTPClient.Do(req)
 	}
+
 	if err != nil {
 		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
 		return err
 	}
+
 	if resp.StatusCode == 401 {
 		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
 		return fmt.Errorf("Unauthorized instance '%s'", i.Name)
