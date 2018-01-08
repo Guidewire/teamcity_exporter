@@ -222,6 +222,7 @@ func (i *Instance) validateStatus(client *tc.Client) error {
 	}
 
 	resp, err := client.HTTPClient.Do(req)
+	defer resp.Body.Close()
 	if err != nil {
 		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
 		return err
@@ -231,6 +232,7 @@ func (i *Instance) validateStatus(client *tc.Client) error {
 		req.SetBasicAuth(i.Username, i.Password)
 		resp, err = client.HTTPClient.Do(req)
 	}
+	defer resp.Body.Close()
 
 	if err != nil {
 		metricsStorage.Set(getHash(instanceStatus.String(), i.Name), prometheus.MustNewConstMetric(instanceStatus, prometheus.GaugeValue, 0, i.Name))
