@@ -5,7 +5,7 @@ Export Teamcity builds metrics to Prometheus.
 To build it:
 
 ```bash
-$ docker run --rm -v "$PWD":/go/src/github.com/guidewire/teamcity_exporter -w /go/src/github.com/guidewire/teamcity_exporter -e GOOS=linux -e GOARCH=amd64 golang:1.8 go build -o bin/teamcity_exporter -v
+$ docker run -it --rm -v "$PWD":/go/src/github.com/guidewire/teamcity_exporter -w /go/src/github.com/guidewire/teamcity_exporter -e GOOS=linux -e GOARCH=amd64 -e GOPATH=/go/src/github.com/guidewire/teamcity_exporter -e GOBIN=/go/src/github.com/guidewire/teamcity_exporter/bin golang:1.8 go get
 ```
 
 To run it:
